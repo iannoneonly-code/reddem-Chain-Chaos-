@@ -152,19 +152,6 @@ form.addEventListener('submit', async function(event) {
     button.textContent = 'VERIFIKASI KODE →';
   }
 });
-
-form.addEventListener('submit', function(event){
-  event.preventDefault();
-  const code = codeInput.value.trim();
-  statusBox.className = '';
-  if(!code){
-    statusBox.textContent = 'Masukkan kode undangan terlebih dahulu.';
-    statusBox.classList.add('status-error');
-    return;
-  }
-  statusBox.textContent = 'Mode tampilan: server verifikasi belum dihubungkan. Kode belum diperiksa dan akses game belum diberikan.';
-  statusBox.classList.add('status-warn');
-});
 </script>
 </body>
 </html>
