@@ -56,9 +56,102 @@ button:active{transform:scale(.99)}
   <footer class="footer">CHAIN CHAOS © 2026 · V2.1e EXCLUSIVE<br><span>SECURE REDEEM PORTAL</span></footer>
 </main>
 <script>
+
+const SUPABASE_URL = 'https://orvjfbitaixzykgfyexk.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_o032U5GzBjhlKO1h9OStpQ_i3kdKkbg';
+
 const form = document.getElementById('redeemForm');
 const codeInput = document.getElementById('code');
 const statusBox = document.getElementById('status');
+const button = form.querySelector('button');
+
+function showStatus(message, type) {
+  statusBox.textContent = message;
+  statusBox.className = type;
+}
+
+form.addEventListener('submit', async function(event) {
+  event.preventDefault();
+
+  const code = codeInput.value.trim().toUpperCase();
+
+  if (!code) {
+    showStatus('Masukkan kode undangan terlebih dahulu.', 'status-error');
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = 'MEMERIKSA...';
+  statusBox.className = '';
+
+  try {
+    const response = await fetch(
+      SUPABASE_URL + '/rest/v1/rpc/redeem_code',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_KEY
+        },
+        body: JSON.stringify({ p_code: code })
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Server verifikasi mengalami masalah.');
+    }
+
+    const result = await response.json();
+    const data = Array.isArray(result) ? result[0] : result;
+
+    if (!data || !data.success || !data.access_token) {
+      showStatus('Kode tidak valid, sudah digunakan, atau kedaluwarsa.', 'status-error');
+      return;
+    }
+
+    const verifyResponse = await fetch(
+      SUPABASE_URL + '/rest/v1/rpc/verify_access',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_KEY
+        },
+        body: JSON.stringify({ p_token: data.access_token })
+      }
+    );
+
+    if (!verifyResponse.ok) {
+      throw new Error('Pemeriksaan sesi gagal.');
+    }
+
+    const verified = await verifyResponse.json();
+
+    if (verified !== true) {
+      throw new Error('Sesi akses tidak berhasil diverifikasi.');
+    }
+
+    sessionStorage.setItem('cc_access_token', data.access_token);
+
+    showStatus(
+      'KODE BERHASIL DIVERIFIKASI! Token sesi tersimpan. Game utama belum terhubung ke pemeriksaan akses.',
+      'status-warn'
+    );
+
+    codeInput.disabled = true;
+
+  } catch (error) {
+    showStatus(
+      'Gagal menghubungi server. Periksa koneksi internet dan coba lagi.',
+      'status-error'
+    );
+  } finally {
+    button.disabled = false;
+    button.textContent = 'VERIFIKASI KODE →';
+  }
+});
 
 form.addEventListener('submit', function(event){
   event.preventDefault();
